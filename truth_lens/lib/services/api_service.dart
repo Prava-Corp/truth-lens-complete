@@ -1,26 +1,10 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 /// API Service for communicating with Truth Lens backend
 class ApiService {
-  /// Get the base URL based on platform
-  // TODO: Change this to your deployed backend URL for production
-  static const String _backendIP = '192.168.15.139';
-
-  static String get baseUrl {
-    if (kIsWeb) {
-      // Flutter Web (Chrome) - use localhost
-      return 'http://localhost:8000';
-    } else if (Platform.isAndroid) {
-      // Android emulator uses 10.0.2.2 to reach host machine's localhost
-      return 'http://10.0.2.2:8000';
-    } else {
-      // iOS real device — use Mac's WiFi IP
-      return 'http://$_backendIP:8000';
-    }
-  }
+  /// Backend URL — deployed on Render
+  static const String baseUrl = 'https://truth-lens-complete.onrender.com';
   
   /// Fetch product by barcode
   static Future<ProductResponse?> getProduct(String barcode) async {
