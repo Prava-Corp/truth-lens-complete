@@ -1,0 +1,31 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+backend/venv/
+backend/.env
+
+# Flutter
+truth_lens/.dart_tool/
+truth_lens/.pub-cache/
+truth_lens/build/
+
+# iOS - regenerated files
+truth_lens/ios/Pods/
+truth_lens/ios/Podfile.lock
+truth_lens/ios/.symlinks/
+truth_lens/ios/Flutter/Flutter.framework
+truth_lens/ios/Flutter/Flutter.podspec
+
+# Stray folders
+{backend,flutter_app/
