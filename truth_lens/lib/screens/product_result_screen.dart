@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/scan_history_service.dart';
 import '../utils/app_theme.dart';
 
 class ProductResultScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _ProductResultScreenState extends State<ProductResultScreen> {
   String? _error;
   bool _ingredientsExpanded = false;
   int? _expandedAdditiveIndex;
+  String _userIntent = 'checked'; // checked / consumed / avoided
 
   @override
   void initState() {
@@ -34,11 +36,44 @@ class _ProductResultScreenState extends State<ProductResultScreen> {
           _error = 'Product not found';
         }
       });
+      // Auto-save scan to user history
+      if (product != null) {
+        ScanHistoryService.saveScan(product: product, intent: 'checked')
+            .catchError((e) => print('⚠️ Could not save scan: $e'));
+      }
     } catch (e) {
       setState(() {
         _loading = false;
         _error = 'Failed to load: $e';
       });
+    }
+  }
+
+  Future<void> _markIntent(String intent) async {
+    if (_product == null) return;
+    setState(() => _userIntent = intent);
+    try {
+      await ScanHistoryService.saveScan(product: _product!, intent: intent);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              intent == 'consumed'
+                  ? 'Marked as consumed'
+                  : 'Marked as avoided',
+            ),
+            backgroundColor:
+                intent == 'consumed' ? AppColors.primary : AppColors.scorePoor,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save: $e')),
+        );
+      }
     }
   }
 
@@ -155,13 +190,15 @@ class _ProductResultScreenState extends State<ProductResultScreen> {
                   if (!hasConcerns && unified.isEmpty)
                     _buildNoConcernsCard(),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 100), // Space for bottom bar
                 ],
               ),
             ),
           ),
         ],
       ),
+      // Bottom action bar: Consumed / Avoided
+      bottomNavigationBar: _buildActionBar(),
     );
   }
 
@@ -848,6 +885,103 @@ class _ProductResultScreenState extends State<ProductResultScreen> {
           Text(
             'No additives or concerns detected.',
             style: TextStyle(fontSize: 13, color: const Color(0xFF166534).withOpacity(0.7)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // BOTTOM ACTION BAR — Consumed / Avoided
+  // ============================================================
+  Widget _buildActionBar() {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 12,
+        bottom: MediaQuery.of(context).padding.bottom + 12,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Consumed button
+          Expanded(
+            child: GestureDetector(
+              onTap: _userIntent == 'consumed' ? null : () => _markIntent('consumed'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: _userIntent == 'consumed'
+                      ? AppColors.primary
+                      : AppColors.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _userIntent == 'consumed' ? Icons.check_circle : Icons.restaurant,
+                      size: 18,
+                      color: _userIntent == 'consumed' ? Colors.white : AppColors.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _userIntent == 'consumed' ? 'Consumed' : 'I Consumed This',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _userIntent == 'consumed' ? Colors.white : AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Avoided button
+          Expanded(
+            child: GestureDetector(
+              onTap: _userIntent == 'avoided' ? null : () => _markIntent('avoided'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: _userIntent == 'avoided'
+                      ? AppColors.scorePoor
+                      : AppColors.scorePoor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _userIntent == 'avoided' ? Icons.check_circle : Icons.not_interested,
+                      size: 18,
+                      color: _userIntent == 'avoided' ? Colors.white : AppColors.scorePoor,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _userIntent == 'avoided' ? 'Avoided' : "I'll Avoid This",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _userIntent == 'avoided' ? Colors.white : AppColors.scorePoor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
