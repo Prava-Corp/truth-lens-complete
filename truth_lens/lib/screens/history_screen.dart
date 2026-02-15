@@ -47,17 +47,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         title: const Text('Scan History'),
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.arrow_back, size: 20),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
@@ -67,6 +57,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Row(
               children: [
                 _buildFilterChip('All', 'all'),
+                const SizedBox(width: 8),
+                _buildFilterChip('Purchased', 'purchased'),
                 const SizedBox(width: 8),
                 _buildFilterChip('Consumed', 'consumed'),
                 const SizedBox(width: 8),
@@ -137,23 +129,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ? AppColors.scoreModerate
             : AppColors.scorePoor;
 
-    final intentIcon = scan.intent == 'consumed'
-        ? Icons.restaurant
-        : scan.intent == 'avoided'
-            ? Icons.not_interested
-            : Icons.visibility;
+    final intentIcon = scan.intent == 'purchased'
+        ? Icons.shopping_bag
+        : scan.intent == 'consumed'
+            ? Icons.restaurant
+            : scan.intent == 'avoided'
+                ? Icons.not_interested
+                : Icons.visibility;
 
-    final intentColor = scan.intent == 'consumed'
-        ? AppColors.primary
-        : scan.intent == 'avoided'
-            ? AppColors.scorePoor
-            : AppColors.textTertiary;
+    final intentColor = scan.intent == 'purchased'
+        ? const Color(0xFF3B82F6)
+        : scan.intent == 'consumed'
+            ? AppColors.primary
+            : scan.intent == 'avoided'
+                ? AppColors.scorePoor
+                : AppColors.textTertiary;
 
-    final intentLabel = scan.intent == 'consumed'
-        ? 'Consumed'
-        : scan.intent == 'avoided'
-            ? 'Avoided'
-            : 'Viewed';
+    final intentLabel = scan.intent == 'purchased'
+        ? 'Purchased'
+        : scan.intent == 'consumed'
+            ? 'Consumed'
+            : scan.intent == 'avoided'
+                ? 'Avoided'
+                : 'Viewed';
 
     return GestureDetector(
       onTap: () async {

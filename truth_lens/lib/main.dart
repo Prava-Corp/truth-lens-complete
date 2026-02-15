@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/auth_service.dart';
-import 'screens/home_screen.dart';
+import 'screens/app_shell.dart';
 import 'screens/login_screen.dart';
 
 Future<void> main() async {
@@ -48,7 +48,7 @@ class TruthLensApp extends StatelessWidget {
   }
 }
 
-/// Decides whether to show LoginScreen or HomeScreen
+/// Decides whether to show LoginScreen or AppShell (with bottom nav)
 class _AuthGate extends StatelessWidget {
   const _AuthGate();
 
@@ -60,7 +60,7 @@ class _AuthGate extends StatelessWidget {
         // While waiting for first auth event, check existing session
         if (!snapshot.hasData) {
           if (AuthService.isLoggedIn) {
-            return const HomeScreen();
+            return const AppShell();
           }
           return const LoginScreen();
         }
@@ -68,7 +68,7 @@ class _AuthGate extends StatelessWidget {
         // React to auth state changes
         final session = snapshot.data!.session;
         if (session != null) {
-          return const HomeScreen();
+          return const AppShell();
         }
         return const LoginScreen();
       },

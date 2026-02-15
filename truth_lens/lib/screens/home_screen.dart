@@ -4,7 +4,6 @@ import '../services/auth_service.dart';
 import '../services/scan_history_service.dart';
 import 'camera_scan_screen.dart';
 import 'manual_scan_screen.dart';
-import 'history_screen.dart';
 import 'product_result_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -113,72 +112,25 @@ class _HomeScreenState extends State<HomeScreen> {
     final email = AuthService.userEmail ?? '';
     final name = email.split('@').first;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '📍 Hyderabad, India',
-                style: AppTextStyles.bodySmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Hi $name,',
-                style: AppTextStyles.heading1,
-              ),
-              Text(
-                '$_greeting ☀️',
-                style: AppTextStyles.heading1.copyWith(
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
+        Text(
+          '📍 Hyderabad, India',
+          style: AppTextStyles.bodySmall,
         ),
-        GestureDetector(
-          onTap: _showLogoutDialog,
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Center(
-              child: Icon(Icons.logout, color: Colors.white, size: 22),
-            ),
+        const SizedBox(height: 8),
+        Text(
+          'Hi $name,',
+          style: AppTextStyles.heading1,
+        ),
+        Text(
+          '$_greeting ☀️',
+          style: AppTextStyles.heading1.copyWith(
+            color: AppColors.primary,
           ),
         ),
       ],
-    );
-  }
-
-  void _showLogoutDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: Text(
-          'Signed in as ${AuthService.userEmail}\n\nAre you sure you want to sign out?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              AuthService.signOut();
-            },
-            style: TextButton.styleFrom(foregroundColor: AppColors.scorePoor),
-            child: const Text('Sign Out'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -333,50 +285,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActions() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildActionCard(
-            icon: '⌨️',
-            title: 'Manual Entry',
-            subtitle: 'Type barcode',
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ManualScanScreen()),
-              );
-              _loadData();
-            },
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildActionCard(
-            icon: '📜',
-            title: 'History',
-            subtitle: 'Past scans',
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const HistoryScreen()),
-              );
-              _loadData();
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionCard({
-    required String icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ManualScanScreen()),
+        );
+        _loadData();
+      },
       child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -388,16 +306,22 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Text(icon, style: const TextStyle(fontSize: 28)),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+            const Text('⌨️', style: TextStyle(fontSize: 28)),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Manual Entry',
+                  style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                ),
+                Text('Type barcode manually', style: AppTextStyles.bodySmall),
+              ],
             ),
-            Text(subtitle, style: AppTextStyles.bodySmall),
+            const Spacer(),
+            const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textTertiary),
           ],
         ),
       ),
@@ -413,20 +337,11 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text('Recent Scans', style: AppTextStyles.heading3),
             if (_recentScans.isNotEmpty)
-              GestureDetector(
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const HistoryScreen()),
-                  );
-                  _loadData();
-                },
-                child: Text(
-                  'See All',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+              Text(
+                'See History tab',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
           ],
@@ -478,17 +393,21 @@ class _HomeScreenState extends State<HomeScreen> {
             ? AppColors.scoreModerate
             : AppColors.scorePoor;
 
-    final intentIcon = scan.intent == 'consumed'
-        ? Icons.restaurant
-        : scan.intent == 'avoided'
-            ? Icons.not_interested
-            : Icons.visibility;
+    final intentIcon = scan.intent == 'purchased'
+        ? Icons.shopping_bag
+        : scan.intent == 'consumed'
+            ? Icons.restaurant
+            : scan.intent == 'avoided'
+                ? Icons.not_interested
+                : Icons.visibility;
 
-    final intentColor = scan.intent == 'consumed'
-        ? AppColors.primary
-        : scan.intent == 'avoided'
-            ? AppColors.scorePoor
-            : AppColors.textTertiary;
+    final intentColor = scan.intent == 'purchased'
+        ? const Color(0xFF3B82F6)
+        : scan.intent == 'consumed'
+            ? AppColors.primary
+            : scan.intent == 'avoided'
+                ? AppColors.scorePoor
+                : AppColors.textTertiary;
 
     return GestureDetector(
       onTap: () async {

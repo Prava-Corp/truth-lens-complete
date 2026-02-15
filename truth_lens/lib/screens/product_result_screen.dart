@@ -18,7 +18,9 @@ class _ProductResultScreenState extends State<ProductResultScreen> {
   String? _error;
   bool _ingredientsExpanded = false;
   int? _expandedAdditiveIndex;
-  String _userIntent = 'checked'; // checked / consumed / avoided
+  String _userIntent = 'checked'; // checked / consumed / avoided / purchased
+  DateTime? _purchaseDate;
+  bool _purchaseSaved = false;
 
   @override
   void initState() {
@@ -36,7 +38,7 @@ class _ProductResultScreenState extends State<ProductResultScreen> {
           _error = 'Product not found';
         }
       });
-      // Auto-save scan to user history
+      // Save scan as 'checked' (upsert — won't duplicate)
       if (product != null) {
         ScanHistoryService.saveScan(product: product, intent: 'checked')
             .catchError((e) => print('⚠️ Could not save scan: $e'));
@@ -64,6 +66,60 @@ class _ProductResultScreenState extends State<ProductResultScreen> {
             ),
             backgroundColor:
                 intent == 'consumed' ? AppColors.primary : AppColors.scorePoor,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showPurchaseDatePicker() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child ?? const SizedBox(),
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _purchaseDate = picked);
+    }
+  }
+
+  Future<void> _savePurchase() async {
+    if (_product == null || _purchaseDate == null) return;
+    try {
+      await ScanHistoryService.savePurchase(
+        product: _product!,
+        purchaseDate: _purchaseDate!,
+      );
+      if (mounted) {
+        setState(() {
+          _userIntent = 'purchased';
+          _purchaseSaved = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Purchase saved for ${_purchaseDate!.day}/${_purchaseDate!.month}/${_purchaseDate!.year}',
+            ),
+            backgroundColor: const Color(0xFF3B82F6),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -892,7 +948,7 @@ class _ProductResultScreenState extends State<ProductResultScreen> {
   }
 
   // ============================================================
-  // BOTTOM ACTION BAR — Consumed / Avoided
+  // BOTTOM ACTION BAR — Purchase + Consumed / Avoided
   // ============================================================
   Widget _buildActionBar() {
     return Container(
@@ -912,76 +968,186 @@ class _ProductResultScreenState extends State<ProductResultScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Consumed button
-          Expanded(
-            child: GestureDetector(
-              onTap: _userIntent == 'consumed' ? null : () => _markIntent('consumed'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: _userIntent == 'consumed'
-                      ? AppColors.primary
-                      : AppColors.primary.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(14),
+          // Purchase tracking section
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  _purchaseSaved
+                      ? 'Purchase recorded!'
+                      : 'Did you purchase this product?',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                const SizedBox(height: 10),
+                Row(
                   children: [
-                    Icon(
-                      _userIntent == 'consumed' ? Icons.check_circle : Icons.restaurant,
-                      size: 18,
-                      color: _userIntent == 'consumed' ? Colors.white : AppColors.primary,
+                    // Date picker
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _purchaseSaved ? null : _showPurchaseDatePicker,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.calendar_today,
+                                size: 15,
+                                color: _purchaseSaved
+                                    ? AppColors.textTertiary
+                                    : AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _purchaseDate != null
+                                    ? '${_purchaseDate!.day}/${_purchaseDate!.month}/${_purchaseDate!.year}'
+                                    : 'Select date',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: _purchaseDate != null
+                                      ? AppColors.textPrimary
+                                      : AppColors.textTertiary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _userIntent == 'consumed' ? 'Consumed' : 'I Consumed This',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: _userIntent == 'consumed' ? Colors.white : AppColors.primary,
+                    const SizedBox(width: 10),
+                    // Save button
+                    GestureDetector(
+                      onTap: (_purchaseDate != null && !_purchaseSaved)
+                          ? _savePurchase
+                          : null,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: _purchaseSaved
+                              ? const Color(0xFF3B82F6)
+                              : (_purchaseDate != null
+                                  ? const Color(0xFF3B82F6)
+                                  : AppColors.divider),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _purchaseSaved ? Icons.check_circle : Icons.shopping_bag,
+                              size: 15,
+                              color: (_purchaseDate != null || _purchaseSaved)
+                                  ? Colors.white
+                                  : AppColors.textTertiary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _purchaseSaved ? 'Saved' : 'Save',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: (_purchaseDate != null || _purchaseSaved)
+                                    ? Colors.white
+                                    : AppColors.textTertiary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
           ),
-          const SizedBox(width: 12),
-          // Avoided button
-          Expanded(
-            child: GestureDetector(
-              onTap: _userIntent == 'avoided' ? null : () => _markIntent('avoided'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: _userIntent == 'avoided'
-                      ? AppColors.scorePoor
-                      : AppColors.scorePoor.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      _userIntent == 'avoided' ? Icons.check_circle : Icons.not_interested,
-                      size: 18,
-                      color: _userIntent == 'avoided' ? Colors.white : AppColors.scorePoor,
+          const SizedBox(height: 10),
+          // Consumed / Avoided row
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: _userIntent == 'consumed' ? null : () => _markIntent('consumed'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _userIntent == 'consumed'
+                          ? AppColors.primary
+                          : AppColors.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _userIntent == 'avoided' ? 'Avoided' : "I'll Avoid This",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: _userIntent == 'avoided' ? Colors.white : AppColors.scorePoor,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _userIntent == 'consumed' ? Icons.check_circle : Icons.restaurant,
+                          size: 16,
+                          color: _userIntent == 'consumed' ? Colors.white : AppColors.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _userIntent == 'consumed' ? 'Consumed' : 'Consumed',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _userIntent == 'consumed' ? Colors.white : AppColors.primary,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: GestureDetector(
+                  onTap: _userIntent == 'avoided' ? null : () => _markIntent('avoided'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _userIntent == 'avoided'
+                          ? AppColors.scorePoor
+                          : AppColors.scorePoor.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _userIntent == 'avoided' ? Icons.check_circle : Icons.not_interested,
+                          size: 16,
+                          color: _userIntent == 'avoided' ? Colors.white : AppColors.scorePoor,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _userIntent == 'avoided' ? 'Avoided' : 'Avoided',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _userIntent == 'avoided' ? Colors.white : AppColors.scorePoor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
