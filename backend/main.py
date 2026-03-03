@@ -6,7 +6,13 @@ Supports two modes:
 - Live mode: Uses Supabase + Open Food Facts (default)
 - Demo mode: Uses mock data for testing (set DEMO_MODE=true)
 """
+import sys
 import os
+
+# Ensure sibling modules (fssai_regulations, database, etc.) are importable
+# Required for Vercel serverless which runs main.py in isolation
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
