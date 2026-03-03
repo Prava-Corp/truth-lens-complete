@@ -3,8 +3,9 @@ import 'package:http/http.dart' as http;
 
 /// API Service for communicating with Truth Lens backend
 class ApiService {
-  /// Backend URL — deployed on Render
-  static const String baseUrl = 'https://truth-lens-complete.onrender.com';
+  /// Backend URL — deployed on Vercel
+  /// TODO: Replace with your actual Vercel URL after deploying (e.g. https://truth-lens-xyz.vercel.app)
+  static const String baseUrl = 'https://truth-lens-complete.vercel.app';
   
   /// Fetch product by barcode
   static Future<ProductResponse?> getProduct(String barcode) async {
