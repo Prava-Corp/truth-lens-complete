@@ -8,9 +8,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://lzvhpfddauejumbpysmt.supabase.co',
+    url: 'https://quqeblwavdcihkajivhf.supabase.co',
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6dmhwZmRkYXVlanVtYnB5c210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMTM5NjMsImV4cCI6MjA4NTY4OTk2M30.U69zqlFBLuxRU9d_1c9fBCUKPBxqF2mlZFRPjjHGNzg',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1cWVibHdhdmRjaWhrYWppdmhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NDE4NjEsImV4cCI6MjA4ODExNzg2MX0.QIK-aqTAVSZk_p8WqC8U5Vs5ubTxHIMsTPERe35ScRI',
   );
 
   runApp(const TruthLensApp());
